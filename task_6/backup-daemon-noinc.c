@@ -23,7 +23,11 @@
 
 enum type;
 enum copy_direction;
+enum command_from_user;
+struct msg;
 struct dir_tree_node;
+struct common_args;
+
 
 int delete_next_nodes(struct dir_tree_node *);
 int read_next_node(struct dir_tree_node *, int);
@@ -34,11 +38,11 @@ struct dir_tree_node *get_dir_tree(const char *);
 
 int cp(const char *, const char *, const char *);
 int copy_files(struct dir_tree_node *, char *,  char *, enum copy_direction);
-
-int refresh_inc_backup(char *, char*, char*);
-char *create_snapshot(char *, char *);
-
 int init_dir(char *);
+
+char *create_snapshot(char *, char *);
+int restore_data(char *, char *, char *);
+
 void *main_d(void *);
 void *listener_d(void *);
 int start_d(char *, char *, int);
@@ -63,19 +67,19 @@ typedef enum copy_direction
 
 
 
-typedef struct msg
-{
-  long mtype;
-  char mtext[sizeof(time_t)];
-} msg_t;
-
-
-
 typedef enum command_from_user
 {
   restore,
   kill_d
 } cmd_t;
+
+
+
+typedef struct msg
+{
+  long mtype;
+  char mtext[sizeof(time_t)];
+} msg_t;
 
 
 
@@ -455,7 +459,7 @@ void *main_d(void * arg)
 
 
 
-int restore_d(char *data_path, char *backup_path, char *timestamp_backup)
+int restore_data(char *data_path, char *backup_path, char *timestamp_backup)
 {
   dir_node *dir_tree;
   int dir_struct_fd;
@@ -537,7 +541,7 @@ void *listener_d(void * arg)
         dprintf(chat_log_fd, "Get restore command, backup timestamp: %s\n", msg -> mtext);
         pthread_mutex_lock(is_free);
         dprintf(*log_fd, "Restoring from backup with %s timestamp\n", msg -> mtext);
-        if (restore_d(data_path, backup_path, msg -> mtext) == -1)
+        if (restore_data(data_path, backup_path, msg -> mtext) == -1)
         {
           dprintf(*log_fd, "ERROR! Can't restore data!\n");
           (msg -> mtype)++;
@@ -642,7 +646,7 @@ int main(int argc, char *argv[])
       }
   }
   else
-    printf("ERROR! too few arg\n");
+    printf("ERROR! Too few args!\nUsage:\n%s DATA_DIR WORK_DIR TIMEOUT\n", argv[0]);
 
   return 0;
 }
